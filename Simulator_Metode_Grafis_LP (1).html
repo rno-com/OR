@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulator Metode Grafis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F3F6F2; --surface:#FFFFFF; --surface-2:#F8FAF7;
+  --ink:#13231A; --ink-2:#4B5C52; --ink-3:#7A8B80;
+  --line:#D6E0D9; --grid-minor:#E7EFE9; --grid-major:#CBDAD0; --axis:#2F4238;
+  --accent:#0A7A4A; --accent-ink:#FFFFFF; --accent-soft:rgba(10,122,74,.12); --feas-fill:rgba(10,122,74,.16);
+  --opt:#C24A12; --opt-soft:rgba(194,74,18,.14);
+  --bad:#B42318; --good:#0A7A4A; --warn:#A15C00;
+  --k1:#2563A8; --k2:#B7791F; --k3:#9D3C8A; --k4:#0F8484; --k5:#6B4FBF; --k6:#A14C2A;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0E1512; --surface:#15201A; --surface-2:#1A2720;
+    --ink:#E3EDE6; --ink-2:#A3B5AA; --ink-3:#72857A;
+    --line:#2A3B32; --grid-minor:#1B2821; --grid-major:#27392F; --axis:#B9CABF;
+    --accent:#3DBE82; --accent-ink:#06140D; --accent-soft:rgba(61,190,130,.14); --feas-fill:rgba(61,190,130,.17);
+    --opt:#F2894E; --opt-soft:rgba(242,137,78,.16);
+    --bad:#F07A6E; --good:#3DBE82; --warn:#E3A948;
+    --k1:#6FA8E8; --k2:#E0AE50; --k3:#D77CC4; --k4:#4CC6C6; --k5:#A590F2; --k6:#E68E66;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0E1512; --surface:#15201A; --surface-2:#1A2720;
+  --ink:#E3EDE6; --ink-2:#A3B5AA; --ink-3:#72857A;
+  --line:#2A3B32; --grid-minor:#1B2821; --grid-major:#27392F; --axis:#B9CABF;
+  --accent:#3DBE82; --accent-ink:#06140D; --accent-soft:rgba(61,190,130,.14); --feas-fill:rgba(61,190,130,.17);
+  --opt:#F2894E; --opt-soft:rgba(242,137,78,.16);
+  --bad:#F07A6E; --good:#3DBE82; --warn:#E3A948;
+  --k1:#6FA8E8; --k2:#E0AE50; --k3:#D77CC4; --k4:#4CC6C6; --k5:#A590F2; --k6:#E68E66;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:flex;flex-direction:column;gap:22px}
+@media (max-width:520px){.wrap{padding-inline:16px;padding-block:18px 36px}}
+
+header{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.lede{margin:0;color:var(--ink-2);max-width:68ch}
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.presets span{font-size:13px;color:var(--ink-3);margin-right:2px}
+.chip{font:inherit;font-size:13.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.layout{display:grid;gap:18px;align-items:start;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:"model model" "formal result" "graph explain"}
+.a-model{grid-area:model}
+.a-formal{grid-area:formal;align-self:stretch}
+.a-result{grid-area:result;align-self:stretch}
+.graph-card{grid-area:graph}
+.explain{grid-area:explain}
+@media (max-width:940px){.layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"model" "formal" "result" "graph" "explain"}}
+.model-body{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px 28px;align-items:start}
+.model-body > .sub + .sub{border-left:1px solid var(--line);padding-left:28px}
+@media (max-width:760px){.model-body{grid-template-columns:minmax(0,1fr)}.model-body > .sub + .sub{border-left:0;padding-left:0}}
+#cons.sub{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px}
+@media (max-width:420px){#cons.sub{grid-template-columns:minmax(0,1fr)}}
+.cons-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:18px;font-weight:700;margin:0;letter-spacing:-.005em}
+.panel h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0;font-weight:700}
+.sub{display:flex;flex-direction:column;gap:8px}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;padding:3px;gap:3px;background:var(--surface-2);align-self:flex-start}
+.seg button{font:inherit;font-size:14px;border:0;background:transparent;color:var(--ink-2);padding:5px 14px;border-radius:6px;cursor:pointer}
+.seg button[aria-checked="true"]{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+
+.math{font-family:var(--f-body);font-size:16px}
+.obj{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+input.n,select.op,input.t{font:inherit;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:5px 7px;min-width:0}
+input.n{font-family:var(--f-mono);font-size:13.5px;text-align:right;width:100%;font-variant-numeric:tabular-nums}
+input.n[aria-invalid="true"]{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--surface-2))}
+.obj input.n{width:96px}
+select.op{font-family:var(--f-mono);font-size:14px;padding:5px 4px;cursor:pointer}
+input.t{font-size:13.5px;width:100%}
+
+.meta{display:grid;grid-template-columns:1fr 1fr 0.8fr;gap:8px}
+.meta label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-3)}
+@media (max-width:420px){.meta{grid-template-columns:1fr 1fr}}
+
+.crow{display:grid;grid-template-columns:30px minmax(0,1fr) auto minmax(0,1fr) auto 46px minmax(0,1.15fr) 28px;gap:6px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
+.crow .nm{grid-column:2 / -2}
+.tag{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font-weight:700;font-size:12.5px;color:#fff;background:var(--kc)}
+.x{font-size:15px;white-space:nowrap}
+.del{font:inherit;width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--ink-3);cursor:pointer;font-size:18px;line-height:1}
+.del:hover{color:var(--bad);border-color:var(--line)}
+.del:disabled{opacity:.3;cursor:not-allowed}
+.add{font:inherit;font-size:14px;font-weight:600;align-self:flex-start;border:1px dashed var(--accent);color:var(--accent);background:transparent;border-radius:8px;padding:6px 12px;cursor:pointer}
+.add:disabled{opacity:.4;cursor:not-allowed}
+.note{font-size:13px;color:var(--ink-3);margin:0}
+
+.formal{font-size:15.5px;line-height:1.75;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;overflow-x:auto}
+.formal .dk{color:var(--ink-3);font-size:13px}
+
+.result{display:flex;flex-direction:column;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;letter-spacing:.03em;padding:3px 10px;border-radius:999px;align-self:flex-start}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.good{color:var(--good);background:color-mix(in srgb,var(--good) 13%,transparent)}
+.pill.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 15%,transparent)}
+.pill.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.zbig{font-family:var(--f-display);font-size:30px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14.5px}
+.kv dt{color:var(--ink-3)}
+.kv dd{margin:0;font-family:var(--f-mono);font-size:14px;font-variant-numeric:tabular-nums}
+
+/* graph card */
+.graph-card{padding:0;gap:0;overflow:hidden}
+.steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.steps button{font:inherit;text-align:left;background:transparent;border:0;border-right:1px solid var(--line);padding:11px 12px 10px;cursor:pointer;color:var(--ink-2);display:flex;flex-direction:column;gap:1px;min-width:0;position:relative}
+.steps button:last-child{border-right:0}
+.steps .no{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3)}
+.steps .lb{font-size:13.5px;font-weight:600;line-height:1.25}
+.steps button[aria-current="step"]{background:var(--accent-soft);color:var(--ink)}
+.steps button[aria-current="step"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--accent)}
+.steps button.done .no{color:var(--accent)}
+@media (max-width:620px){.steps .lb{display:none}.steps button{align-items:center;padding:10px 4px}.steps .no{font-size:13px;font-weight:600}}
+
+.gbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap}
+.gbar .ttl{font-weight:700;font-size:15px}
+.readout{font-family:var(--f-mono);font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;min-height:1.2em}
+.plot{padding:0 10px 4px}
+#svg{display:block;width:100%;height:auto;touch-action:manipulation;cursor:crosshair;user-select:none}
+#svg text{font-family:var(--f-body)}
+.hint{font-size:12.5px;color:var(--ink-3);padding:0 16px 12px;margin:0}
+
+.iso{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.iso label{font-size:13.5px;font-weight:600}
+.iso input[type=range]{flex:1 1 180px;accent-color:var(--opt);min-width:120px}
+.iso output{font-family:var(--f-mono);font-size:13px;min-width:12ch;text-align:right;font-variant-numeric:tabular-nums}
+.iso button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer}
+
+.nav{display:flex;justify-content:space-between;gap:10px;padding:12px 16px;border-top:1px solid var(--line);background:var(--surface-2)}
+.nav button{font:inherit;font-size:14px;font-weight:600;border-radius:8px;padding:7px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.nav button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.nav button:disabled{opacity:.4;cursor:not-allowed}
+
+.explain{gap:12px}
+.explain h2 small{display:block;font-family:var(--f-body);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:2px}
+.explain p{margin:0;max-width:72ch}
+.blocks{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.blk{border:1px solid var(--line);border-left:3px solid var(--kc,var(--line));border-radius:6px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:4px;min-width:0}
+.blk h4{margin:0;font-size:14px;font-weight:700;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.blk h4 em{font-style:normal;font-weight:400;color:var(--ink-3);font-size:13px}
+.calc{font-family:var(--f-mono);font-size:12.8px;line-height:1.65;color:var(--ink);overflow-x:auto;white-space:nowrap}
+.calc .c{color:var(--ink-3)}
+.calc b{color:var(--accent);font-weight:500}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700;background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.m{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+td.z{font-family:var(--f-mono);font-size:13.5px;font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
+th.z{text-align:right}
+tr.best td{background:var(--opt-soft)}
+tr.best td:first-child{box-shadow:inset 3px 0 0 var(--opt)}
+.star{color:var(--opt);font-weight:700}
+.callout{border-radius:8px;padding:12px 14px;background:var(--opt-soft);border:1px solid color-mix(in srgb,var(--opt) 35%,transparent)}
+.callout.bad{background:color-mix(in srgb,var(--bad) 10%,transparent);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
+.callout.info{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+.callout p+p{margin-top:6px}
+
+.test{border-top:1px solid var(--line);padding:12px 16px;display:flex;flex-direction:column;gap:6px}
+.test .th{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.test .th b{font-size:14px}
+.test ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.test li{font-family:var(--f-mono);font-size:12.8px;white-space:nowrap;overflow-x:auto}
+.ok{color:var(--good)} .no{color:var(--bad)}
+.xbtn{font:inherit;font-size:12.5px;border:1px solid var(--line);background:transparent;color:var(--ink-2);border-radius:6px;padding:2px 8px;cursor:pointer}
+
+.blk.cur{grid-column:1/-1;background:var(--surface);border-color:color-mix(in srgb,var(--accent) 55%,var(--line));box-shadow:0 0 0 3px var(--accent-soft);gap:10px;padding:12px 14px}
+.q{margin:0;font-size:15px}
+.ask{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.ask label{display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:13px}
+.ask input.n{width:120px}
+.btn{font:inherit;font-size:14px;font-weight:600;border-radius:7px;padding:6px 14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
+.btn.opt{background:var(--surface-2);color:var(--ink);border-color:var(--line);font-weight:500}
+.btn.opt:hover{border-color:var(--accent)}
+.btn.opt.pick-ok{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}
+.btn.opt.pick-no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--surface))}
+.fb{font-size:14px;padding:7px 10px;border-radius:6px}
+.fb.ok{color:var(--good);background:color-mix(in srgb,var(--good) 12%,transparent)}
+.fb.no{color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.acts{display:flex;gap:12px;align-items:center}
+.lnk{font:inherit;font-size:13px;background:none;border:0;padding:0;color:var(--ink-2);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.lnk.skip{align-self:flex-start;color:var(--ink-3)}
+.steps button:disabled{opacity:.45;cursor:not-allowed}
+.prog{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.prog li{display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:center;font-size:14.5px;color:var(--ink-3)}
+.prog .dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--line)}
+.prog li.done{color:var(--ink)}
+.prog li.done .dot{background:var(--accent);border-color:var(--accent)}
+.prog li.now{color:var(--ink);font-weight:600}
+.prog li.now .dot{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.prog .cnt{font-family:var(--f-mono);font-size:12.5px;font-weight:400;color:var(--ink-3)}
+footer{font-size:12.5px;color:var(--ink-3)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body style="margin:0">
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Riset Operasi · Modul 2 · Program Linier</div>
+    <h1>Simulator Metode Grafis</h1>
+    
+    <div class="presets" id="presets"><span>Contoh soal:</span></div>
+  </header>
+
+  <div class="layout">
+      <section class="panel a-model" aria-labelledby="h-model">
+        <h2 id="h-model">Formulasi model</h2>
+        <div class="model-body">
+        <div class="sub">
+          <h3>Fungsi tujuan</h3>
+          <div class="seg" role="radiogroup" aria-label="Arah optimasi">
+            <button type="button" id="sense-max" role="radio" data-sense="max">Maksimasi</button>
+            <button type="button" id="sense-min" role="radio" data-sense="min">Minimasi</button>
+          </div>
+          <div class="obj math">
+            <span id="senseLbl">Maks</span>&nbsp;Z =
+            <input class="n" id="c1" inputmode="decimal" aria-label="Koefisien x1 pada fungsi tujuan"> <span class="x">x₁ +</span>
+            <input class="n" id="c2" inputmode="decimal" aria-label="Koefisien x2 pada fungsi tujuan"> <span class="x">x₂</span>
+          </div>
+          <div class="meta">
+            <label for="n1">Arti x₁<input class="t" id="n1" placeholder="mis. unit meja"></label>
+            <label for="n2">Arti x₂<input class="t" id="n2" placeholder="mis. unit kursi"></label>
+            <label for="unit">Satuan Z<input class="t" id="unit" placeholder="mis. Rp"></label>
+          </div>
+        </div>
+        <div class="sub">
+          <h3>Kendala</h3>
+          <div id="cons" class="sub"></div>
+          <div class="cons-foot">
+            <button type="button" class="add" id="add">+ Tambah kendala</button>
+            <p class="note">Syarat non-negatif x₁ ≥ 0 dan x₂ ≥ 0 selalu berlaku (sumbu koordinat).</p>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      <section class="panel a-formal" aria-labelledby="h-form">
+        <h2 id="h-form">Bentuk model LP</h2>
+        <div class="formal" id="formal"></div>
+      </section>
+
+      <section class="panel result a-result" aria-labelledby="h-res" aria-live="polite">
+        <h2 id="h-res">Progres &amp; hasil</h2>
+        <div id="result"></div>
+      </section>
+
+      <section class="panel graph-card" aria-label="Grafik metode grafis">
+        <nav class="steps" id="steps" aria-label="Langkah penyelesaian"></nav>
+        <div class="gbar">
+          <span class="ttl" id="gtitle"></span>
+          <span class="readout" id="readout">Arahkan kursor ke grafik</span>
+        </div>
+        <div class="plot" id="plotbox"><svg id="svg" role="img" aria-label="Grafik daerah layak dan garis kendala"></svg></div>
+        <p class="hint">Klik atau ketuk titik mana pun pada grafik untuk menguji apakah titik itu layak.</p>
+        <div class="iso" id="iso" hidden>
+          <label for="isoK">Geser garis Z</label>
+          <input type="range" id="isoK">
+          <output id="isoOut" for="isoK"></output>
+          <button type="button" id="isoPlay">Jalankan</button>
+          <button type="button" id="isoReset">Ke optimal</button>
+        </div>
+        <div class="test" id="test" hidden></div>
+        <div class="nav">
+          <button type="button" id="prev">← Sebelumnya</button>
+          <button type="button" id="next" class="primary">Langkah berikutnya →</button>
+        </div>
+      </section>
+
+      <section class="panel explain" id="explain" aria-live="polite"></section>
+  </div>
+  </div>
+
+<script>
+(function(){
+const $ = s => document.querySelector(s);
+const SUB1='x₁', SUB2='x₂';
+const MAXK = 6;
+const STEPS = [
+  {no:1, lb:'Garis kendala', title:'Gambarkan setiap kendala sebagai garis'},
+  {no:2, lb:'Daerah layak', title:'Menentukan daerah feasible'},
+  {no:3, lb:'Titik ekstrim', title:'Menentukan titik-titik ekstrim'},
+  {no:4, lb:'Uji titik', title:'Menguji titik ekstrim ke fungsi tujuan'},
+  {no:5, lb:'Solusi optimal', title:'Menemukan solusi optimal'}
+];
+const PRESETS = [
+  {id:'contoh1', label:'Contoh 1 · Maksimasi', sense:'max', c:[500000,300000], n1:'unit meja', n2:'unit kursi', unit:'Rp',
+    cons:[{a1:2,a2:1,op:'<=',b:100,name:'Bahan baku'},{a1:1,a2:1,op:'<=',b:80,name:'Waktu kerja'}]},
+  {id:'contoh2', label:'Contoh 2 · Minimasi', sense:'min', c:[20,30], n1:'', n2:'', unit:'',
+    cons:[{a1:2,a2:1,op:'>=',b:12,name:'Kendala 1'},{a1:1,a2:1,op:'>=',b:8,name:'Kendala 2'}]},
+  {id:'multi', label:'Optimal alternatif', sense:'max', c:[2,2], n1:'', n2:'', unit:'',
+    cons:[{a1:2,a2:1,op:'<=',b:100,name:'Kendala 1'},{a1:1,a2:1,op:'<=',b:80,name:'Kendala 2'}]},
+  {id:'unbounded', label:'Tak terbatas', sense:'max', c:[20,30], n1:'', n2:'', unit:'',
+    cons:[{a1:2,a2:1,op:'>=',b:12,name:'Kendala 1'},{a1:1,a2:1,op:'>=',b:8,name:'Kendala 2'}]},
+  {id:'infeasible', label:'Tidak layak', sense:'max', c:[3,2], n1:'', n2:'', unit:'',
+    cons:[{a1:2,a2:1,op:'<=',b:10,name:'Kapasitas'},{a1:1,a2:1,op:'>=',b:12,name:'Permintaan minimum'}]}
+];
+
+const S = { model:null, preset:'contoh1', step:1, isoK:null, test:null, R:null, V:null, W:640, H:500, rev:{1:0,2:0,3:0,4:0,5:0}, fb:null };
+
+/* ---------- formatting ---------- */
+function clean(v){ let r = Math.round(v*1e6)/1e6; if (Math.abs(r) < 1e-9) r = 0; return r; }
+function fmt(v, dec=2){ if(!isFinite(v)) return v>0?'∞':'−∞'; const r = clean(v); const s = Math.abs(r).toLocaleString('id-ID',{maximumFractionDigits:dec}); return (r<0?'−':'')+s; }
+function fmtZ(v){ const u=(S.model.unit||'').trim(); const n=fmt(v); if(!u) return n; if(/^rp$/i.test(u)) return (v<0?'−':'')+'Rp '+fmt(Math.abs(v)); return n+' '+u; }
+function fmtShort(v){ const a=Math.abs(v); const sg=v<0?'−':''; if(a>=1e9) return sg+fmt(a/1e9,1)+' M'; if(a>=1e6) return sg+fmt(a/1e6,1)+' jt'; if(a>=1e4) return sg+fmt(a/1e3,1)+' rb'; return fmt(v); }
+function opSym(op){ return op==='<='?'≤':op==='>='?'≥':'='; }
+function lin(a1,a2){
+  const parts=[];
+  [[a1,SUB1],[a2,SUB2]].forEach(([c,v])=>{
+    if(Math.abs(c)<1e-12) return;
+    const abs=Math.abs(c); const cs = Math.abs(abs-1)<1e-12 ? '' : fmt(abs,4);
+    if(!parts.length) parts.push((c<0?'−':'')+cs+v);
+    else parts.push((c<0?' − ':' + ')+cs+v);
+  });
+  return parts.length?parts.join(''):'0';
+}
+function subst(a1,a2,p){ // "2(20) + 1(60)"
+  const t=[];
+  [[a1,p[0]],[a2,p[1]]].forEach(([c,x],i)=>{
+    const abs=Math.abs(c); const term = fmt(abs,4)+'('+fmt(x)+')';
+    if(i===0) t.push((c<0?'−':'')+term); else t.push((c<0?' − ':' + ')+term);
+  });
+  return t.join('');
+}
+function pt(p){ return '('+fmt(p[0])+'; '+fmt(p[1])+')'; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function kName(i){ const n=(S.model.cons[i].name||'').trim(); return n; }
+
+/* ---------- solver ---------- */
+function relTol(...vals){ return 1e-9*Math.max(1,...vals.map(Math.abs)); }
+function sat(k,p){
+  const v=k.a1*p[0]+k.a2*p[1];
+  const t=1e-7*Math.max(1,Math.abs(k.b),Math.abs(k.a1*p[0]),Math.abs(k.a2*p[1]));
+  if(k.op==='<=') return v<=k.b+t;
+  if(k.op==='>=') return v>=k.b-t;
+  return Math.abs(v-k.b)<=t;
+}
+function feasible(m,p){ return p[0]>=-relTol(p[0],p[1]) && p[1]>=-relTol(p[0],p[1]) && m.cons.every(k=>sat(k,p)); }
+
+function solve(m){
+  const s = m.sense==='max'?1:-1;
+  const lines=[];
+  m.cons.forEach((k,i)=>{ if(Math.abs(k.a1)>1e-12||Math.abs(k.a2)>1e-12) lines.push({a1:k.a1,a2:k.a2,b:k.b,i,kind:'k'}); });
+  lines.push({a1:1,a2:0,b:0,kind:'ax2'}); // x1 = 0  -> sumbu x2
+  lines.push({a1:0,a2:1,b:0,kind:'ax1'}); // x2 = 0  -> sumbu x1
+  const verts=[];
+  for(let i=0;i<lines.length;i++) for(let j=i+1;j<lines.length;j++){
+    const A=lines[i], B=lines[j];
+    const det=A.a1*B.a2-B.a1*A.a2;
+    if(Math.abs(det)<1e-12*Math.max(1,Math.abs(A.a1*B.a2),Math.abs(B.a1*A.a2))) continue;
+    let x=(A.b*B.a2-B.b*A.a2)/det, y=(A.a1*B.b-B.a1*A.b)/det;
+    const sc=Math.max(1,Math.abs(x),Math.abs(y));
+    if(Math.abs(x)<1e-9*sc) x=0; if(Math.abs(y)<1e-9*sc) y=0;
+    const p=[x,y];
+    if(!feasible(m,p)) continue;
+    const dup=verts.find(v=>Math.hypot(v.p[0]-x,v.p[1]-y)<=1e-7*sc);
+    if(dup) continue;
+    verts.push({p});
+  }
+  verts.forEach(v=>{
+    v.on=lines.filter(l=>Math.abs(l.a1*v.p[0]+l.a2*v.p[1]-l.b)<=1e-7*Math.max(1,Math.abs(l.b),Math.abs(l.a1*v.p[0]),Math.abs(l.a2*v.p[1])));
+    v.z=m.c[0]*v.p[0]+m.c[1]*v.p[1];
+  });
+  // order counter-clockwise, starting nearest the origin
+  if(verts.length>2){
+    const cx=verts.reduce((a,v)=>a+v.p[0],0)/verts.length, cy=verts.reduce((a,v)=>a+v.p[1],0)/verts.length;
+    verts.forEach(v=>v.ang=Math.atan2(v.p[1]-cy,v.p[0]-cx));
+    verts.sort((a,b)=>a.ang-b.ang);
+  } else verts.sort((a,b)=>(a.p[0]+a.p[1])-(b.p[0]+b.p[1]));
+  if(verts.length){
+    let k0=0; verts.forEach((v,i)=>{ if(v.p[0]+v.p[1] < verts[k0].p[0]+verts[k0].p[1]-1e-12) k0=i; });
+    const rot=verts.splice(0,k0); verts.push(...rot);
+  }
+  // Label so that the module's reading order is natural: A = first non-origin intersection of two constraints if present
+  verts.forEach((v,i)=>v.L=String.fromCharCode(65+i));
+
+  // recession cone (unbounded directions)
+  const cand=[[1,0],[0,1]];
+  m.cons.forEach(k=>{ const n=Math.hypot(k.a1,k.a2); if(n>1e-12){ cand.push([k.a2/n,-k.a1/n],[-k.a2/n,k.a1/n]); } });
+  const rays=cand.filter(d=> d[0]>=-1e-9 && d[1]>=-1e-9 && m.cons.every(k=>{
+    const v=k.a1*d[0]+k.a2*d[1]; const t=1e-9*Math.max(1,Math.hypot(k.a1,k.a2));
+    return k.op==='<='? v<=t : k.op==='>='? v>=-t : Math.abs(v)<=t; }));
+  const feasibleModel = verts.length>0;
+  const bounded = rays.length===0;
+  const cn=Math.hypot(m.c[0],m.c[1]);
+  const R={verts,rays,lines,bounded,feasible:feasibleModel,s,ties:[],common:[],zBest:null,status:null};
+  if(!feasibleModel){ R.status='infeasible'; return R; }
+  if(rays.some(d=> s*(m.c[0]*d[0]+m.c[1]*d[1]) > 1e-9*Math.max(1,cn))){ R.status='unbounded';
+    R.zBest = verts.reduce((a,v)=> s*v.z>s*a?v.z:a, verts[0].z);
+    return R; }
+  let zb=verts[0].z; verts.forEach(v=>{ if(s*v.z>s*zb) zb=v.z; });
+  R.zBest=zb;
+  R.ties=verts.filter(v=>Math.abs(v.z-zb)<=1e-9*Math.max(1,Math.abs(zb)));
+  const altRay = !bounded && rays.some(d=>Math.abs(m.c[0]*d[0]+m.c[1]*d[1])<=1e-9*Math.max(1,cn));
+  R.altRay=altRay;
+  R.common = R.ties.length>1 ? R.ties[0].on.filter(l=>R.ties.every(t=>t.on.includes(l))) : [];
+  R.status = (R.ties.length>1 || altRay) ? 'multiple' : 'unique';
+  return R;
+}
+
+/* ---------- view ---------- */
+function niceStep(raw){ const e=Math.pow(10,Math.floor(Math.log10(raw))); const f=raw/e; return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e; }
+function niceAxis(max){ const step=niceStep(max/6); return {step, max:Math.ceil(max/step-1e-9)*step}; }
+function computeView(m,R){
+  const xs=[],ys=[];
+  m.cons.forEach(k=>{
+    if(Math.abs(k.a1)>1e-12){ const v=k.b/k.a1; if(v>0) xs.push(v); }
+    if(Math.abs(k.a2)>1e-12){ const v=k.b/k.a2; if(v>0) ys.push(v); }
+  });
+  R.verts.forEach(v=>{ xs.push(v.p[0]); ys.push(v.p[1]); });
+  let xm=Math.max(0,...xs), ym=Math.max(0,...ys);
+  if(xm<=0) xm = ym>0?ym:10;
+  if(ym<=0) ym = xm;
+  const f = (R.feasible && !R.bounded) ? 1.4 : 1.15;
+  const ax=niceAxis(xm*f), ay=niceAxis(ym*f);
+  return {X:ax.max, Y:ay.max, xs:ax.step, ys:ay.step};
+}
+function clipPoly(poly,a1,a2,b){
+  const out=[]; const n=poly.length; if(!n) return out;
+  const f=p=>a1*p[0]+a2*p[1]-b; const e=1e-9*Math.max(1,Math.abs(b));
+  for(let i=0;i<n;i++){
+    const P=poly[i], Q=poly[(i+1)%n]; const fp=f(P), fq=f(Q);
+    const pin=fp<=e, qin=fq<=e;
+    if(pin) out.push(P);
+    if(pin!==qin){ const t=fp/(fp-fq); out.push([P[0]+t*(Q[0]-P[0]), P[1]+t*(Q[1]-P[1])]); }
+  }
+  return out;
+}
+function halfPoly(k,box){
+  let poly=box;
+  if(k.op==='<='||k.op==='=') poly=clipPoly(poly,k.a1,k.a2,k.b);
+  if(k.op==='>='||k.op==='=') poly=clipPoly(poly,-k.a1,-k.a2,-k.b);
+  return poly;
+}
+function clipLine(a1,a2,b,X,Y){
+  const pts=[]; const e=1e-9*Math.max(X,Y);
+  if(Math.abs(a2)>1e-12) [0,X].forEach(x=>{ const y=(b-a1*x)/a2; if(y>=-e&&y<=Y+e) pts.push([x,Math.min(Math.max(y,0),Y)]); });
+  if(Math.abs(a1)>1e-12) [0,Y].forEach(y=>{ const x=(b-a2*y)/a1; if(x>=-e&&x<=X+e) pts.push([Math.min(Math.max(x,0),X),y]); });
+  let best=null,bd=0;
+  for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++){ const d=Math.hypot(pts[i][0]-pts[j][0],pts[i][1]-pts[j][1]); if(d>bd){bd=d;best=[pts[i],pts[j]];} }
+  return bd>1e-9*Math.max(X,Y)?best:null;
+}
+
+/* ---------- drawing ---------- */
+const M={l:58,r:22,t:18,b:48};
+function sx(x){ return M.l + x/S.V.X*(S.W-M.l-M.r); }
+function sy(y){ return S.H-M.b - y/S.V.Y*(S.H-M.t-M.b); }
+function inv(px,py){ return [ (px-M.l)/(S.W-M.l-M.r)*S.V.X, (S.H-M.b-py)/(S.H-M.t-M.b)*S.V.Y ]; }
+function P(p){ return sx(p[0]).toFixed(2)+','+sy(p[1]).toFixed(2); }
+function kc(i){ return 'var(--k'+((i%MAXK)+1)+')'; }
+function polyPath(poly){ return poly.length? 'M'+poly.map(P).join('L')+'Z' : ''; }
+
+function draw(){
+  const m=S.model, R=S.R, V=S.V, step=S.step, W=S.W, H=S.H;
+  const svg=$('#svg'); svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  const pw=W-M.l-M.r, ph=H-M.t-M.b;
+  const box=[[0,0],[V.X,0],[V.X,V.Y],[0,V.Y]];
+  let g='';
+  g+=`<defs>
+    <pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="9" height="9" style="fill:var(--feas-fill)"/>
+      <line x1="0" y1="0" x2="0" y2="9" style="stroke:var(--accent);stroke-width:1.3;opacity:.5"/>
+    </pattern>
+    <clipPath id="pc"><rect x="${M.l}" y="${M.t}" width="${pw}" height="${ph}"/></clipPath>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" style="fill:var(--opt)"/></marker>
+  </defs>`;
+  g+=`<rect x="${M.l}" y="${M.t}" width="${pw}" height="${ph}" style="fill:var(--surface)"/>`;
+  // graph-paper grid
+  const minorX=V.xs/5, minorY=V.ys/5;
+  let gm='', gM='';
+  if(pw/(V.X/minorX)>=5) for(let x=minorX;x<V.X-1e-9;x+=minorX) gm+=`M${sx(x).toFixed(1)},${M.t}V${M.t+ph}`;
+  if(ph/(V.Y/minorY)>=5) for(let y=minorY;y<V.Y-1e-9;y+=minorY) gm+=`M${M.l},${sy(y).toFixed(1)}H${M.l+pw}`;
+  for(let x=V.xs;x<=V.X+1e-9;x+=V.xs) gM+=`M${sx(x).toFixed(1)},${M.t}V${M.t+ph}`;
+  for(let y=V.ys;y<=V.Y+1e-9;y+=V.ys) gM+=`M${M.l},${sy(y).toFixed(1)}H${M.l+pw}`;
+  g+=`<path d="${gm}" style="stroke:var(--grid-minor);stroke-width:1;fill:none"/>`;
+  g+=`<path d="${gM}" style="stroke:var(--grid-major);stroke-width:1;fill:none"/>`;
+  // tick labels
+  for(let x=0;x<=V.X+1e-9;x+=V.xs) g+=`<text x="${sx(x)}" y="${H-M.b+17}" text-anchor="middle" style="fill:var(--ink-3);font-size:11.5px">${fmt(x)}</text>`;
+  for(let y=V.ys;y<=V.Y+1e-9;y+=V.ys) g+=`<text x="${M.l-7}" y="${sy(y)+4}" text-anchor="end" style="fill:var(--ink-3);font-size:11.5px">${fmt(y)}</text>`;
+  const n1=(m.n1||'').trim(), n2=(m.n2||'').trim();
+  g+=`<text x="${M.l+pw}" y="${H-10}" text-anchor="end" style="fill:var(--ink-2);font-size:13px;font-weight:600">${SUB1}${n1?' ('+esc(n1)+')':''}</text>`;
+  g+=`<text x="${14}" y="${M.t+ph/2}" text-anchor="middle" transform="rotate(-90 14 ${M.t+ph/2})" style="fill:var(--ink-2);font-size:13px;font-weight:600">${SUB2}${n2?' ('+esc(n2)+')':''}</text>`;
+
+  g+=`<g clip-path="url(#pc)">`;
+  // step 2: per-constraint half-planes
+  if(step===2){ let j=0;
+    m.cons.forEach((k,i)=>{ if(!drawable(k)) return; if(j++>=S.rev[2]) return;
+      const hp=halfPoly(k,box); g+=`<path d="${polyPath(hp)}" style="fill:${kc(i)};opacity:.1"/>`; });
+  }
+  // feasible region
+  let feasPoly=[];
+  if(((step===2 && stepDone(2)) || step>2) && R.feasible){
+    feasPoly=box; m.cons.forEach(k=>{ feasPoly=halfPoly(k,feasPoly); });
+    if(feasPoly.length) g+=`<path d="${polyPath(feasPoly)}" style="fill:url(#hatch);stroke:var(--accent);stroke-width:${m.cons.some(k=>k.op==='=')?4:1.5};stroke-linejoin:round"/>`;
+  }
+  // constraint lines
+  const tags=[];
+  m.cons.forEach((k,i)=>{
+    if(i>=shown(1)) return;
+    const seg=clipLine(k.a1,k.a2,k.b,V.X,V.Y); if(!seg) return;
+    g+=`<line x1="${sx(seg[0][0])}" y1="${sy(seg[0][1])}" x2="${sx(seg[1][0])}" y2="${sy(seg[1][1])}" style="stroke:${kc(i)};stroke-width:2.4;stroke-linecap:round"/>`;
+    // tag near the upper end
+    const top = sy(seg[0][1])<sy(seg[1][1]) ? [seg[0],seg[1]] : [seg[1],seg[0]];
+    const tt=0.1; const q=[top[0][0]+(top[1][0]-top[0][0])*tt, top[0][1]+(top[1][1]-top[0][1])*tt];
+    tags.push({i,x:sx(q[0]),y:sy(q[1])});
+  });
+  // step 5: iso line
+  let isoInfo=null;
+  if(step===5 && R.feasible && (Math.abs(m.c[0])>1e-12||Math.abs(m.c[1])>1e-12)){
+    const k=S.isoK;
+    const seg=clipLine(m.c[0],m.c[1],k,V.X,V.Y);
+    if(seg){
+      g+=`<line x1="${sx(seg[0][0])}" y1="${sy(seg[0][1])}" x2="${sx(seg[1][0])}" y2="${sy(seg[1][1])}" style="stroke:var(--opt);stroke-width:2.2;stroke-dasharray:8 6"/>`;
+      const mid=[(seg[0][0]+seg[1][0])/2,(seg[0][1]+seg[1][1])/2];
+      // gradient direction in screen space
+      let gx=R.s*m.c[0]*V.X/pw, gy=-R.s*m.c[1]*V.Y/ph; const gl=Math.hypot(gx,gy)||1; gx/=gl; gy/=gl;
+      const mx=sx(mid[0]), my=sy(mid[1]);
+      g+=`<line x1="${mx}" y1="${my}" x2="${mx+gx*46}" y2="${my+gy*46}" style="stroke:var(--opt);stroke-width:2" marker-end="url(#arr)"/>`;
+      isoInfo={mx,my,gx,gy,seg};
+    }
+  }
+  g+=`</g>`;
+  // axes
+  g+=`<path d="M${M.l},${M.t}V${M.t+ph}H${M.l+pw}" style="stroke:var(--axis);stroke-width:1.6;fill:none"/>`;
+
+  // step 1: intercepts
+  if(step===1){
+    const seen=new Map();
+    m.cons.forEach((k,i)=>{
+      if(i>=S.rev[1]) return;
+      const add=(p)=>{ if(p[0]<-1e-9||p[1]<-1e-9||p[0]>V.X+1e-9||p[1]>V.Y+1e-9) return; const key=clean(p[0])+'|'+clean(p[1]); if(!seen.has(key)) seen.set(key,{p,ks:[i]}); else seen.get(key).ks.push(i); };
+      if(Math.abs(k.a2)>1e-12) add([0,k.b/k.a2]);
+      if(Math.abs(k.a1)>1e-12) add([k.b/k.a1,0]);
+    });
+    seen.forEach(({p,ks})=>{
+      const x=sx(p[0]), y=sy(p[1]);
+      g+=`<circle cx="${x}" cy="${y}" r="5" style="fill:var(--surface);stroke:${kc(ks[0])};stroke-width:2.2"/>`;
+      const onY = Math.abs(p[0])<1e-9 && Math.abs(p[1])>1e-9;
+      const lx = onY ? x+9 : x+6, ly = onY ? y-6 : y-9;
+      g+=`<text x="${lx}" y="${ly}" style="fill:var(--ink);font-size:12px;font-weight:600;paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round">${pt(p)}</text>`;
+    });
+  }
+  // tags
+  tags.forEach(t=>{
+    g+=`<g><circle cx="${t.x}" cy="${t.y}" r="11" style="fill:${kc(t.i)}"/><text x="${t.x}" y="${t.y+4}" text-anchor="middle" style="fill:#fff;font-size:11px;font-weight:700">K${t.i+1}</text></g>`;
+  });
+  // vertices
+  if(step>=3 && R.feasible){
+    const cx=R.verts.reduce((a,v)=>a+sx(v.p[0]),0)/R.verts.length, cy=R.verts.reduce((a,v)=>a+sy(v.p[1]),0)/R.verts.length;
+    R.verts.forEach((v,vi)=>{
+      if(vi>=shown(3)) return;
+      const x=sx(v.p[0]), y=sy(v.p[1]);
+      const isBest = step===5 && stepDone(5) && R.status!=='unbounded' && R.ties.includes(v);
+      if(isBest) g+=`<circle cx="${x}" cy="${y}" r="13" style="fill:var(--opt-soft);stroke:var(--opt);stroke-width:2"/>`;
+      g+=`<circle cx="${x}" cy="${y}" r="5.5" style="fill:${isBest?'var(--opt)':'var(--ink)'};stroke:var(--surface);stroke-width:2"/>`;
+      let dx=x-cx, dy=y-cy; const dl=Math.hypot(dx,dy);
+      if(dl<1e-6){dx=1;dy=-1;} else {dx/=dl;dy/=dl;}
+      let lx=x+dx*18, ly=y+dy*18+4;
+      const anchor = dx>0.35?'start':dx<-0.35?'end':'middle';
+      lx=Math.min(Math.max(lx,M.l+6),W-6); ly=Math.min(Math.max(ly,M.t+12),H-M.b-6);
+      let label=v.L+' '+pt(v.p);
+      if(step>=4 && vi<shown(4)) label=v.L+' · Z = '+fmtShort(v.z);
+      const anc = (anchor==='end' && lx-label.length*6.2<M.l) ? 'start' : (anchor==='start' && lx+label.length*6.2>W) ? 'end' : anchor;
+      g+=`<text x="${lx}" y="${ly}" text-anchor="${anc}" style="fill:${isBest?'var(--opt)':'var(--ink)'};font-size:12.5px;font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round">${label}</text>`;
+    });
+  }
+  // iso label
+  if(isoInfo){
+    const {mx,my,gx,gy}=isoInfo;
+    let lx=mx+gx*52+(gx>=0?4:-4), ly=my+gy*52+(gy>=0?14:-4);
+    lx=Math.min(Math.max(lx,M.l+6),W-110); ly=Math.min(Math.max(ly,M.t+14),S.H-M.b-6);
+    g+=`<text x="${lx}" y="${ly}" style="fill:var(--opt);font-size:12px;font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:4px">Z = ${fmtShort(S.isoK)}</text>`;
+  }
+  // test point
+  if(S.test){
+    const p=S.test.p, ok=S.test.ok; const x=sx(p[0]), y=sy(p[1]);
+    g+=`<g style="stroke:${ok?'var(--good)':'var(--bad)'};stroke-width:2.2"><line x1="${x-7}" y1="${y}" x2="${x+7}" y2="${y}"/><line x1="${x}" y1="${y-7}" x2="${x}" y2="${y+7}"/></g><circle cx="${x}" cy="${y}" r="10" style="fill:none;stroke:${ok?'var(--good)':'var(--bad)'};stroke-width:1.5;stroke-dasharray:3 3"/>`;
+  }
+  svg.innerHTML=g;
+}
+
+/* ---------- explanations ---------- */
+function eqTxt(k){ return lin(k.a1,k.a2)+' = '+fmt(k.b,4); }
+function consTxt(k){ return lin(k.a1,k.a2)+' '+opSym(k.op)+' '+fmt(k.b,4); }
+function kHead(i){ const n=kName(i); return `<h4>Kendala ${i+1}${n?' <em>'+esc(n)+'</em>':''}</h4>`; }
+function lineDesc(l){ if(l.kind==='ax1') return 'sumbu '+SUB1+' ('+SUB2+' = 0)'; if(l.kind==='ax2') return 'sumbu '+SUB2+' ('+SUB1+' = 0)'; return 'K'+(l.i+1)+' ('+eqTxt(l)+')'; }
+
+function sideWord(k){
+  // side where a1x+a2y < b
+  if(Math.abs(k.a2)>1e-12) return k.a2>0?'di bawah':'di atas';
+  return k.a1>0?'di sebelah kiri':'di sebelah kanan';
+}
+function sideWordGE(k){
+  if(Math.abs(k.a2)>1e-12) return k.a2>0?'di atas':'di bawah';
+  return k.a1>0?'di sebelah kanan':'di sebelah kiri';
+}
+function derive(v){
+  const ks=v.on.filter(l=>l.kind==='k'), ax=v.on.filter(l=>l.kind!=='k');
+  let out='';
+  if(ax.length===2){ out=`<span class="c">Titik asal, perpotongan sumbu ${SUB1} dan sumbu ${SUB2}.</span>`; }
+  else if(ax.length===1 && ks.length>=1){
+    const a=ax[0], k=ks[0];
+    if(a.kind==='ax2'){ // x1=0
+      out=`<span class="c">K${k.i+1} memotong sumbu ${SUB2} (${SUB1} = 0):</span><br>${lin(0,k.a2)} = ${fmt(k.b,4)} → ${SUB2} = <b>${fmt(v.p[1])}</b>`;
+    } else {
+      out=`<span class="c">K${k.i+1} memotong sumbu ${SUB1} (${SUB2} = 0):</span><br>${lin(k.a1,0)} = ${fmt(k.b,4)} → ${SUB1} = <b>${fmt(v.p[0])}</b>`;
+    }
+  } else if(ks.length>=2){
+    const A=ks[0], B=ks[1];
+    out=`<span class="c">Perpotongan K${A.i+1} dan K${B.i+1}:</span><br>(1) ${eqTxt(A)}<br>(2) ${eqTxt(B)}<br>`;
+    const x1=v.p[0], x2=v.p[1];
+    const subInto=(E,tag)=>{
+      const t1 = Math.abs(E.a1)>1e-12 ? (E.a1<0?'−':'')+fmt(Math.abs(E.a1),4)+'('+fmt(x1)+')' : '';
+      const c2 = Math.abs(Math.abs(E.a2)-1)<1e-12 ? '' : fmt(Math.abs(E.a2),4);
+      const t2 = (t1 ? (E.a2<0?' − ':' + ') : (E.a2<0?'−':'')) + c2 + SUB2;
+      return `Substitusi ${SUB1} = ${fmt(x1)} ke (${tag}):<br>${t1}${t2} = ${fmt(E.b,4)} → ${SUB2} = <b>${fmt(x2)}</b>`;
+    };
+    if(Math.abs(A.a2)<1e-12 || Math.abs(B.a2)<1e-12){
+      const E0 = Math.abs(A.a2)<1e-12?A:B, tag0=E0===A?1:2, E1=E0===A?B:A, tag1=E0===A?2:1;
+      out+=`Dari (${tag0}): ${SUB1} = ${fmt(E0.b,4)}/${fmt(E0.a1,4)} = <b>${fmt(x1)}</b><br>`+subInto(E1,tag1);
+    } else if(Math.abs(A.a1)<1e-12 || Math.abs(B.a1)<1e-12){
+      const E0 = Math.abs(A.a1)<1e-12?A:B, tag0=E0===A?1:2, E1=E0===A?B:A, tag1=E0===A?2:1;
+      out+=`Dari (${tag0}): ${SUB2} = ${fmt(E0.b,4)}/${fmt(E0.a2,4)} = <b>${fmt(x2)}</b><br>Substitusi ke (${tag1}) → ${SUB1} = <b>${fmt(x1)}</b>`;
+    } else {
+      const m1=B.a2, m2=A.a2; const det=A.a1*B.a2-B.a1*A.a2, rhs=A.b*B.a2-B.b*A.a2;
+      if(Math.abs(m1-m2)<1e-12){
+        out+=`Eliminasi ${SUB2}: (1) − (2)<br>`;
+      } else {
+        out+=`Eliminasi ${SUB2}: (1)×${fmt(m1,4)} − (2)×${fmt(m2,4)}<br>`;
+        out+=`<span class="c">&nbsp;&nbsp;${lin(A.a1*m1,A.a2*m1)} = ${fmt(A.b*m1,4)}</span><br><span class="c">&nbsp;&nbsp;${lin(B.a1*m2,B.a2*m2)} = ${fmt(B.b*m2,4)}</span><br>`;
+      }
+      out+=`${lin(det,0)} = ${fmt(rhs,4)} → ${SUB1} = <b>${fmt(x1)}</b><br>`;
+      const E = Math.abs(B.a2)>1e-12 ? B : A; const tag = E===B?2:1;
+      out+=subInto(E,tag);
+    }
+  } else { out='<span class="c">Titik sudut daerah layak.</span>'; }
+  const extra=v.on.filter(l=>l.kind==='k').slice(ks.length>=2?2:(ax.length===1?1:0));
+  if(extra.length) out+=`<br><span class="c">Juga dilalui ${extra.map(l=>'K'+(l.i+1)).join(', ')}.</span>`;
+  return out;
+}
+function interp(v){
+  const m=S.model; const n1=(m.n1||'').trim(), n2=(m.n2||'').trim();
+  if(n1||n2) return `${fmt(v.p[0])} ${esc(n1||SUB1)} dan ${fmt(v.p[1])} ${esc(n2||SUB2)}`;
+  return `${SUB1} = ${fmt(v.p[0])} dan ${SUB2} = ${fmt(v.p[1])}`;
+}
+function final5(){
+  const R=S.R, m=S.model; const word=m.sense==='max'?'maksimum':'minimum';
+  let h='';
+  if(R.status==='infeasible') return `<div class="callout bad"><p><b>Model tidak layak (infeasible).</b> Tidak ada satu titik pun yang memenuhi semua kendala sekaligus, sehingga solusi optimal tidak ada. Periksa kembali kendala yang saling bertentangan.</p></div>`;
+  const rows=R.verts.map(v=>{ const best=R.status!=='unbounded' && R.ties.includes(v); return `<tr class="${best?'best':''}"><td><b>${v.L}</b>${best?' <span class="star">★</span>':''}</td><td class="m">${pt(v.p)}</td><td class="z">${fmtZ(v.z)}</td></tr>`; }).join('');
+  const table=`<div class="tw"><table><thead><tr><th>Titik</th><th>(${SUB1}; ${SUB2})</th><th class="z">Nilai Z</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  if(R.status==='unbounded'){
+    h+=`<div class="callout bad"><p><b>Solusi tak terbatas (unbounded).</b> Daerah feasible terbuka ke arah ${m.sense==='max'?'naiknya':'turunnya'} Z. Garis Z bisa terus digeser ke arah panah tanpa pernah meninggalkan daerah feasible, sehingga nilai Z ${word} tidak pernah tercapai.</p><p>Dalam praktik, kondisi ini biasanya berarti ada kendala yang terlupa dalam formulasi.</p></div>`;
+    return h+table;
+  }
+  const v=R.ties[0];
+  const rule = m.sense==='max' ? 'Untuk masalah maksimasi, pilih titik ekstrim dengan nilai Z <b>terbesar</b>.' : 'Untuk masalah minimasi, pilih titik ekstrim dengan nilai Z <b>terkecil</b>.';
+  h+=`<p>${rule}</p>`;
+  if(R.status==='unique'){
+    h+=`<div class="callout"><p>Nilai Z ${word} = <b>${fmtZ(R.zBest)}</b>, dicapai di <b>titik ${v.L} ${pt(v.p)}</b>.</p><p>Artinya, keputusan terbaik adalah ${interp(v)}.</p></div>`;
+  } else {
+    const names=R.ties.map(t=>t.L).join(' dan ');
+    const par=R.common.length?` Garis fungsi tujuan sejajar dengan ${lineDesc(R.common[0])}.`:'';
+    h+=`<div class="callout"><p><b>Optimal alternatif (multiple optima).</b> Nilai Z ${word} = <b>${fmtZ(R.zBest)}</b> dicapai oleh ${R.ties.length>1?'titik '+names:'titik '+v.L}${R.ties.length>1?', dan juga oleh setiap titik pada ruas garis yang menghubungkannya':' dan setiap titik di sepanjang sisi terbuka daerah feasible'}.${par}</p><p>Salah satu solusinya: ${interp(v)}.</p></div>`;
+  }
+  if(!R.bounded) h+=`<p class="note">Daerah feasible memang tidak terbatas, tetapi nilai Z justru ${m.sense==='max'?'turun':'naik'} ke arah daerah terbuka, sehingga nilai ${word} tetap ada.</p>`;
+  h+=table;
+  h+=`<p class="note">Garis putus-putus oranye adalah garis selidik Z = konstanta. Geser nilainya: untuk ${m.sense==='max'?'maksimasi, garis digeser menjauhi':'minimasi, garis digeser mendekati'} titik asal sampai titik terakhir yang masih menyentuh daerah feasible. Panah menunjukkan arah Z ${m.sense==='max'?'membesar':'mengecil'}.</p>`;
+  return h;
+}
+
+/* ---------- staged learning ---------- */
+function drawable(k){ return Math.abs(k.a1)>1e-12||Math.abs(k.a2)>1e-12; }
+function stepCount(n){ const m=S.model,R=S.R;
+  if(n===1) return m.cons.length;
+  if(n===2) return m.cons.filter(drawable).length+1;
+  if(n===3||n===4) return R.feasible?R.verts.length:0;
+  return 1; }
+function stepDone(n){ return S.rev[n]>=stepCount(n); }
+function unlocked(n){ for(let k=1;k<n;k++) if(!stepDone(k)) return false; return true; }
+function shown(n){ return S.step>n?Infinity:S.step<n?0:S.rev[n]; }
+function resetProgress(){ S.rev={1:0,2:0,3:0,4:0,5:0}; S.fb=null; S.step=1; S.isoK=null; }
+
+function s1calc(k){
+  const a1=k.a1,a2=k.a2,b=k.b;
+  let c=`<div class="calc">${consTxt(k)} <span class="c">→</span> ${eqTxt(k)}<br>`;
+  if(!drawable(k)) c+='<span class="c">Koefisien x₁ dan x₂ sama dengan 0, tidak ada garis.</span>';
+  else if(Math.abs(a1)<1e-12) c+=`<span class="c">Garis mendatar:</span> ${SUB2} = ${fmt(b,4)}/${fmt(a2,4)} = <b>${fmt(b/a2)}</b><br><span class="c">titik</span> ${pt([0,b/a2])}`;
+  else if(Math.abs(a2)<1e-12) c+=`<span class="c">Garis tegak:</span> ${SUB1} = ${fmt(b,4)}/${fmt(a1,4)} = <b>${fmt(b/a1)}</b><br><span class="c">titik</span> ${pt([b/a1,0])}`;
+  else if(Math.abs(b)<1e-12){ const t=S.V.X/2; c+=`<span class="c">Garis melalui titik asal (0; 0).</span><br>Ambil ${SUB1} = ${fmt(t)} → ${SUB2} = <b>${fmt(-a1*t/a2)}</b><br><span class="c">titik</span> ${pt([t,-a1*t/a2])}`; }
+  else {
+    c+=`Jika ${SUB1} = 0 → ${lin(0,a2)} = ${fmt(b,4)} → ${SUB2} = <b>${fmt(b/a2)}</b> <span class="c">titik ${pt([0,b/a2])}</span><br>`;
+    c+=`Jika ${SUB2} = 0 → ${lin(a1,0)} = ${fmt(b,4)} → ${SUB1} = <b>${fmt(b/a1)}</b> <span class="c">titik ${pt([b/a1,0])}</span>`;
+  }
+  return c+'</div>';
+}
+function s1fields(k){
+  const a1=k.a1,a2=k.a2,b=k.b;
+  if(!drawable(k)||Math.abs(b)<1e-12) return [];
+  if(Math.abs(a1)<1e-12) return [{lbl:SUB2+' =',ans:b/a2}];
+  if(Math.abs(a2)<1e-12) return [{lbl:SUB1+' =',ans:b/a1}];
+  return [{lbl:`Jika ${SUB1} = 0 → ${SUB2} =`,ans:b/a2},{lbl:`Jika ${SUB2} = 0 → ${SUB1} =`,ans:b/a1}];
+}
+function s2test(k){
+  const V=S.V; let tp=[0,0];
+  if(Math.abs(k.b)<1e-12){ tp = Math.abs(k.a1)>1e-12 ? [V.X/4,0] : [0,V.Y/4]; if(Math.abs(k.a1*tp[0]+k.a2*tp[1])<1e-12) tp=[0,V.Y/4]; }
+  const val=k.a1*tp[0]+k.a2*tp[1]; return {tp,val,ok:sat(k,tp)};
+}
+function s2calc(k){
+  const {tp,val,ok}=s2test(k);
+  let c=`<div class="calc">Uji titik ${pt(tp)}:<br>${subst(k.a1,k.a2,tp)} = ${fmt(val)} ${opSym(k.op)} ${fmt(k.b,4)} → <span class="${ok?'ok':'no'}">${ok?'benar':'salah'}</span><br>`;
+  if(k.op==='=') c+='<span class="c">Kendala "=": hanya titik pada garis yang memenuhi.</span>';
+  else c+=`<span class="c">Arsir ${ok?'sisi yang memuat':'sisi yang tidak memuat'} titik uji,</span><br><span class="c">yaitu</span> <b>${k.op==='<='?sideWord(k):sideWordGE(k)} garis</b>`;
+  return c+'</div>';
+}
+function s2final(){
+  const R=S.R;
+  if(!R.feasible) return `<div class="callout bad"><p><b>Tidak ada daerah feasible.</b> Arsiran semua kendala tidak saling beririsan di kuadran pertama, sehingga model ini <b>infeasible</b>. Kendala-kendalanya terlalu ketat atau saling bertentangan.</p></div>`;
+  if(!R.bounded) return `<div class="callout info"><p><b>Daerah feasible tidak terbatas.</b> Area berarsir terbuka ke satu arah. Solusi optimal masih mungkin ada, bergantung pada arah fungsi tujuan (lihat Langkah 5).</p></div>`;
+  return `<div class="callout info"><p>Daerah feasible berbentuk <b>poligon tertutup</b>, ditandai arsiran hijau pada grafik. Titik-titik sudutnya dicari di Langkah 3.</p></div>`;
+}
+function vDesc(v){
+  const ks=v.on.filter(l=>l.kind==='k'), ax=v.on.filter(l=>l.kind!=='k');
+  if(ax.length===2) return 'Titik asal, perpotongan sumbu '+SUB1+' dan sumbu '+SUB2;
+  if(ax.length===1 && ks.length>=1) return `Perpotongan K${ks[0].i+1} (${eqTxt(ks[0])}) dengan sumbu ${ax[0].kind==='ax1'?SUB1:SUB2}`;
+  if(ks.length>=2) return `Perpotongan K${ks[0].i+1} (${eqTxt(ks[0])}) dan K${ks[1].i+1} (${eqTxt(ks[1])})`;
+  return 'Titik sudut daerah feasible';
+}
+function step5Options(){
+  const R=S.R, m=S.model; const mx=m.sense==='max'; const word=mx?'maksimum':'minimum';
+  const opts=R.verts.map(v=>{
+    const ok=(R.status==='unique'||R.status==='multiple') && R.ties.includes(v);
+    let why;
+    if(ok) why = R.ties.length>1 ? `Tepat. Titik ${R.ties.filter(t=>t!==v).map(t=>t.L).join(', ')} juga memberi Z yang sama, jadi solusinya optimal alternatif.` : `Tepat! Titik ${v.L} memberi Z ${mx?'terbesar':'terkecil'}.`;
+    else if(R.status==='unbounded') why=`Belum tepat. Daerah feasible terbuka ke arah Z ${mx?'membesar':'mengecil'}. Geser garis Z dan perhatikan apakah ada titik terakhir yang disentuh.`;
+    else why=`Belum tepat. Z di titik ${v.L} = ${fmtZ(v.z)}. Bandingkan lagi dengan nilai Z titik lain di Langkah 4.`;
+    return {lbl:'Titik '+v.L, ok, why};
+  });
+  opts.push({lbl:'Tak terbatas (unbounded)', ok:R.status==='unbounded',
+    why: R.status==='unbounded' ? 'Tepat! Z dapat terus membaik tanpa batas.' : (R.bounded||!R.feasible ? (R.feasible?`Belum tepat. Daerah feasible tertutup, jadi Z pasti punya nilai ${word}.`:'Belum tepat. Periksa lagi hasil Langkah 2.') : 'Belum tepat. Daerah feasible memang terbuka, tetapi Z tidak membaik ke arah itu. Coba geser garis Z.')});
+  opts.push({lbl:'Tidak layak (infeasible)', ok:R.status==='infeasible',
+    why: R.status==='infeasible' ? 'Tepat! Tidak ada titik yang memenuhi semua kendala.' : 'Belum tepat. Daerah feasible ada (lihat Langkah 2), jadi model ini layak.'});
+  return opts;
+}
+function items(n){
+  const m=S.model, R=S.R;
+  if(n===1) return m.cons.map((k,i)=>({head:kHead(i), kc:kc(i), q:`Ubah <b>${consTxt(k)}</b> menjadi persamaan, lalu cari titik potongnya dengan sumbu.`, check:{type:'num',fields:s1fields(k)}, done:s1calc(k)}));
+  if(n===2){
+    const arr=[];
+    m.cons.forEach((k,i)=>{ if(!drawable(k)) return; const t=s2test(k);
+      arr.push({head:kHead(i), kc:kc(i), q:`Uji titik ${pt(t.tp)} ke K${i+1}. Apakah <b>${subst(k.a1,k.a2,t.tp)} ${opSym(k.op)} ${fmt(k.b,4)}</b> benar?`,
+        check:{type:'choice',options:[{lbl:'Benar',ok:t.ok},{lbl:'Salah',ok:!t.ok}].map(o=>({...o,why:o.ok?`Tepat! ${subst(k.a1,k.a2,t.tp)} = ${fmt(t.val)}.`:`Belum tepat. Hitung ruas kirinya dulu, lalu bandingkan dengan ${fmt(k.b,4)}.`}))},
+        done:s2calc(k)}); });
+    arr.push({head:'<h4>Irisan semua arsiran</h4>', kc:'var(--accent)', q:'Semua kendala sudah diarsir. Adakah daerah di kuadran I yang memenuhi <b>semua</b> kendala sekaligus?',
+      check:{type:'choice',options:[{lbl:'Ada',ok:R.feasible},{lbl:'Tidak ada',ok:!R.feasible}].map(o=>({...o,why:o.ok?'Tepat!':'Belum tepat. Perhatikan bagian grafik yang terkena arsiran semua kendala.'}))},
+      done:s2final()});
+    return arr;
+  }
+  if(n===3) return R.feasible ? R.verts.map(v=>({head:`<h4>Titik ${v.L}</h4>`, kc:'var(--ink)', q:vDesc(v)+'. Hitung koordinatnya.',
+      check:{type:'num',fields:[{lbl:SUB1+' =',ans:v.p[0]},{lbl:SUB2+' =',ans:v.p[1]}]}, done:`<div class="calc"><b>${pt(v.p)}</b><br>${derive(v)}</div>`})) : [];
+  if(n===4) return R.feasible ? R.verts.map(v=>({head:`<h4>Titik ${v.L} <em>${pt(v.p)}</em></h4>`, kc:'var(--ink)', q:`Hitung Z = ${subst(m.c[0],m.c[1],v.p)}`,
+      check:{type:'num',fields:[{lbl:'Z =',ans:v.z}]}, done:`<div class="calc">Z = ${subst(m.c[0],m.c[1],v.p)}<br>&nbsp;&nbsp;= <b>${fmtZ(v.z)}</b></div>`})) : [];
+  return [{head:'<h4>Tentukan solusi optimal</h4>', kc:'var(--opt)',
+    q:`Berdasarkan nilai Z di Langkah 4 dan garis selidik pada grafik, di mana solusi optimalnya? ${m.sense==='max'?'(masalah maksimasi: cari Z terbesar)':'(masalah minimasi: cari Z terkecil)'}`,
+    check:{type:'choice',options:step5Options()}, done:''}];
+}
+const INTRO={
+  1:'<p>Ubah setiap pertidaksamaan menjadi persamaan (tanda ≤ atau ≥ diganti =), lalu cari dua titik potong dengan sumbu. Hubungkan kedua titik itu menjadi garis. Isi jawabanmu, lalu tekan <b>Periksa</b>.</p>',
+  2:'<p>Uji satu titik yang tidak terletak pada garis. Jika titik uji memenuhi kendala, arsir sisi garis yang memuat titik itu. Daerah feasible adalah irisan semua arsiran di kuadran pertama.</p>',
+  3:'<p>Titik ekstrim adalah titik sudut daerah feasible: perpotongan dua garis kendala, atau perpotongan garis kendala dengan sumbu. Hitung koordinatnya dengan eliminasi atau substitusi.</p>',
+  4:'<p>Substitusikan koordinat setiap titik ekstrim ke fungsi tujuan.</p>',
+  5:'<p>Untuk maksimasi pilih titik dengan Z terbesar, untuk minimasi pilih Z terkecil. Garis selidik (garis putus-putus oranye) bisa digeser untuk membantu.</p>'
+};
+function curHtml(it,idx){
+  let a='';
+  const f=it.check.type==='num'?it.check.fields:[];
+  if(f.length) a=`<div class="ask">${f.map((x,j)=>`<label>${x.lbl} <input class="n ans" id="ans-${S.step}-${idx}-${j}" inputmode="decimal" autocomplete="off"></label>`).join('')}<button type="button" class="btn" data-act="check">Periksa</button></div>`;
+  else if(it.check.type==='choice') a=`<div class="ask">${it.check.options.map((o,j)=>`<button type="button" class="btn opt" data-act="choose" data-j="${j}">${o.lbl}</button>`).join('')}</div>`;
+  const fb=`<div class="fb ${S.fb?(S.fb.ok?'ok':'no'):''}" id="fb" ${S.fb?'':'hidden'}>${S.fb?S.fb.msg:''}</div>`;
+  const rev = a ? `<button type="button" class="lnk" data-act="reveal">Tampilkan jawaban</button>` : `<button type="button" class="btn" data-act="reveal">Tampilkan</button>`;
+  return `<div class="blk cur" style="--kc:${it.kc}">${it.head}<p class="q">${it.q}</p>${a}${fb}<div class="acts">${rev}</div></div>`;
+}
+function renderExplain(){
+  const n=S.step, st=STEPS[n-1], its=items(n), r=Math.min(S.rev[n],its.length);
+  let h=`<h2><small>Langkah ${st.no} dari 5</small>${st.title}</h2>${INTRO[n]}`;
+  if(n===5 && stepDone(5)){ h+=final5(); }
+  else if(!its.length){ h+=`<div class="callout bad"><p>Daerah feasible kosong, jadi tidak ada titik ekstrim ${n===3?'yang bisa ditentukan':'untuk diuji'}. Lanjutkan ke langkah berikutnya.</p></div>`; }
+  else {
+    h+='<div class="blocks">';
+    its.forEach((it,i)=>{ if(i<r) h+=`<div class="blk" style="--kc:${it.kc}">${it.head}${it.done}</div>`; else if(i===r) h+=curHtml(it,i); });
+    h+='</div>';
+    const left=its.length-r-1;
+    if(left>0) h+=`<p class="note">Masih ada ${left} bagian lagi setelah ini.</p>`;
+  }
+  if(stepDone(n)){
+    if(n===2) h+=s2final();
+    if(n===4 && S.R.feasible){
+      const m=S.model; h+=`<div class="tw"><table><thead><tr><th>Titik</th><th>(${SUB1}; ${SUB2})</th><th>Perhitungan Z</th><th class="z">Nilai Z</th></tr></thead><tbody>${S.R.verts.map(v=>`<tr><td><b>${v.L}</b></td><td class="m">${pt(v.p)}</td><td class="m">${subst(m.c[0],m.c[1],v.p)}</td><td class="z">${fmtZ(v.z)}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+    if(n<5) h+=`<div class="callout info"><p><b>Langkah ${n} selesai.</b> Tekan <b>Lanjut ke Langkah ${n+1}</b> di bawah grafik.</p></div>`;
+  } else {
+    h+=`<button type="button" class="lnk skip" data-act="skip">Tampilkan semua jawaban langkah ini</button>`;
+  }
+  $('#explain').innerHTML=h;
+  $('#gtitle').textContent='Langkah '+st.no+': '+st.lb;
+}
+function renderSteps(){
+  $('#steps').innerHTML=STEPS.map(s=>{ const ok=unlocked(s.no); return `<button type="button" data-step="${s.no}" ${s.no===S.step?'aria-current="step"':''} ${ok?'':'disabled title="Selesaikan langkah sebelumnya dulu"'} class="${ok&&stepDone(s.no)?'done':''}"><span class="no">${ok&&stepDone(s.no)?'✓ ':''}${String(s.no).padStart(2,'0')}</span><span class="lb">${s.lb}</span></button>`; }).join('');
+  const done=stepDone(S.step);
+  $('#prev').disabled=S.step===1;
+  $('#next').hidden=S.step===5;
+  $('#next').disabled=!done;
+  $('#next').textContent = done ? (S.step===4?'Lanjut ke solusi optimal →':'Lanjut ke Langkah '+(S.step+1)+' →') : 'Selesaikan langkah ini dulu';
+}
+function renderFormal(){
+  const m=S.model;
+  let h=`<div><b>${m.sense==='max'?'Maks':'Min'}</b> Z = ${lin(m.c[0],m.c[1])}</div><div class="dk">dengan kendala:</div>`;
+  m.cons.forEach((k,i)=>{ const n=kName(i); h+=`<div>&nbsp;&nbsp;${consTxt(k)} ${n?'<span class="dk">('+esc(n)+')</span>':''}</div>`; });
+  h+=`<div>&nbsp;&nbsp;${SUB1}, ${SUB2} ≥ 0</div>`;
+  $('#formal').innerHTML=h;
+}
+function renderResult(){
+  const R=S.R, m=S.model; const word=m.sense==='max'?'maksimum':'minimum';
+  let h='';
+  if(!(unlocked(5)&&stepDone(5))){
+    h=`<ol class="prog">${STEPS.map(s=>{ const c=stepCount(s.no), r=Math.min(S.rev[s.no],c); const st=unlocked(s.no)&&stepDone(s.no)?'done':s.no===S.step?'now':'wait'; return `<li class="${st}"><span class="dot"></span><span>${s.no}. ${s.lb}</span><span class="cnt">${unlocked(s.no)?(c?r+'/'+c:'—'):'terkunci'}</span></li>`; }).join('')}</ol><p class="note">Solusi optimal akan muncul di sini setelah Langkah 5 selesai.</p>`;
+  } else if(R.status==='infeasible') h=`<span class="pill bad">Tidak layak</span><p class="note">Tidak ada titik yang memenuhi semua kendala.</p>`;
+  else if(R.status==='unbounded') h=`<span class="pill bad">Tak terbatas</span><p class="note">Z dapat ${m.sense==='max'?'diperbesar':'diperkecil'} tanpa batas di daerah feasible.</p>`;
+  else {
+    const v=R.ties[0];
+    h=`<span class="pill ${R.status==='unique'?'good':'warn'}">${R.status==='unique'?'Optimal tunggal':'Optimal alternatif'}</span>
+      <div><div class="note">Z ${word}</div><div class="zbig">${fmtZ(R.zBest)}</div></div>
+      <dl class="kv"><dt>${SUB1}${(m.n1||'').trim()?' · '+esc(m.n1):''}</dt><dd>${fmt(v.p[0])}</dd><dt>${SUB2}${(m.n2||'').trim()?' · '+esc(m.n2):''}</dt><dd>${fmt(v.p[1])}</dd><dt>Titik</dt><dd>${v.L} ${pt(v.p)}${R.status==='multiple'?' (salah satu)':''}</dd></dl>`;
+  }
+  $('#result').innerHTML=h;
+}
+function isoRange(){
+  const m=S.model, V=S.V; const zs=[[0,0],[V.X,0],[V.X,V.Y],[0,V.Y]].map(p=>m.c[0]*p[0]+m.c[1]*p[1]);
+  return [Math.min(...zs), Math.max(...zs)];
+}
+function isoDefault(){ const R=S.R; const [a,b]=isoRange();
+  if(stepDone(5) && R.zBest!=null && R.status!=='unbounded') return R.zBest;
+  return R.s>0 ? a+(b-a)*0.08 : b-(b-a)*0.12; }
+function renderIso(){
+  const R=S.R, m=S.model;
+  const show = S.step===5 && R.feasible && (Math.abs(m.c[0])>1e-12||Math.abs(m.c[1])>1e-12);
+  $('#iso').hidden=!show;
+  if(!show) return;
+  const [a,b]=isoRange(); const el=$('#isoK');
+  el.min=a; el.max=b; el.step=(b-a)/500||1;
+  if(S.isoK==null) S.isoK=isoDefault();
+  el.value=S.isoK;
+  $('#isoOut').textContent='Z = '+fmtZ(S.isoK);
+  const done=stepDone(5);
+  $('#isoReset').hidden = !done || R.status==='unbounded';
+  $('#isoPlay').hidden = !done;
+}
+function renderTest(){
+  const box=$('#test');
+  if(!S.test){ box.hidden=true; return; }
+  const m=S.model, p=S.test.p;
+  let li=m.cons.map((k,i)=>{ const v=k.a1*p[0]+k.a2*p[1]; const ok=sat(k,p); return `<li><span class="${ok?'ok':'no'}">${ok?'✓':'✗'}</span> K${i+1}: ${subst(k.a1,k.a2,p)} = ${fmt(v)} ${opSym(k.op)} ${fmt(k.b,4)}</li>`; }).join('');
+  const nn = p[0]>=0&&p[1]>=0;
+  li+=`<li><span class="${nn?'ok':'no'}">${nn?'✓':'✗'}</span> ${SUB1}, ${SUB2} ≥ 0</li>`;
+  const z=m.c[0]*p[0]+m.c[1]*p[1];
+  box.innerHTML=`<div class="th"><b>Uji titik ${pt(p)}: <span class="${S.test.ok?'ok':'no'}">${S.test.ok?'solusi layak':'solusi tidak layak'}</span></b><button type="button" class="xbtn" id="testClose">Tutup</button></div><ul>${li}</ul><div class="note">Nilai Z di titik ini = ${fmtZ(z)}${S.test.ok?'':' (tidak dapat dipakai karena melanggar kendala)'}</div>`;
+  box.hidden=false;
+  $('#testClose').onclick=()=>{ S.test=null; renderTest(); draw(); };
+}
+
+function renderAll(){
+  S.R=solve(S.model); S.V=computeView(S.model,S.R);
+  if(S.test) S.test.ok=feasible(S.model,S.test.p);
+  renderSteps(); renderFormal(); renderResult(); renderIso(); draw(); renderExplain(); renderTest();
+}
+
+/* ---------- editor ---------- */
+function renderEditor(){
+  const m=S.model;
+  $('#c1').value=m.c[0]; $('#c2').value=m.c[1];
+  $('#n1').value=m.n1||''; $('#n2').value=m.n2||''; $('#unit').value=m.unit||'';
+  ['max','min'].forEach(s=>$('#sense-'+s).setAttribute('aria-checked', String(m.sense===s)));
+  $('#senseLbl').textContent=m.sense==='max'?'Maks':'Min';
+  $('#cons').innerHTML=m.cons.map((k,i)=>`
+    <div class="crow" data-i="${i}">
+      <span class="tag" style="--kc:${kc(i)}">K${i+1}</span>
+      <input class="n" id="a1-${i}" data-f="a1" inputmode="decimal" value="${k.a1}" aria-label="Koefisien x1 kendala ${i+1}">
+      <span class="x">${SUB1} +</span>
+      <input class="n" id="a2-${i}" data-f="a2" inputmode="decimal" value="${k.a2}" aria-label="Koefisien x2 kendala ${i+1}">
+      <span class="x">${SUB2}</span>
+      <select class="op" id="op-${i}" data-f="op" aria-label="Tanda kendala ${i+1}">
+        <option value="<=" ${k.op==='<='?'selected':''}>≤</option><option value=">=" ${k.op==='>='?'selected':''}>≥</option><option value="=" ${k.op==='='?'selected':''}>=</option>
+      </select>
+      <input class="n" id="b-${i}" data-f="b" inputmode="decimal" value="${k.b}" aria-label="Ruas kanan kendala ${i+1}">
+      <button type="button" class="del" data-del="${i}" aria-label="Hapus kendala ${i+1}" ${m.cons.length<=1?'disabled':''}>×</button>
+      <input class="t nm" id="nm-${i}" data-f="name" value="${esc(k.name||'')}" placeholder="Nama kendala (opsional)" aria-label="Nama kendala ${i+1}">
+    </div>`).join('');
+  $('#add').disabled=m.cons.length>=MAXK;
+}
+function num(el){ const raw=String(el.value).trim().replace(',','.'); const v=parseFloat(raw); const ok=raw!==''&&isFinite(v); el.setAttribute('aria-invalid', ok?'false':'true'); return ok?v:0; }
+function readEditor(){
+  const m=S.model;
+  m.c=[num($('#c1')),num($('#c2'))];
+  m.n1=$('#n1').value; m.n2=$('#n2').value; m.unit=$('#unit').value;
+  m.cons.forEach((k,i)=>{
+    k.a1=num($('#a1-'+i)); k.a2=num($('#a2-'+i)); k.b=num($('#b-'+i));
+    k.op=$('#op-'+i).value; k.name=$('#nm-'+i).value;
+  });
+}
+function markCustom(){ S.preset=null; document.querySelectorAll('#presets .chip').forEach(b=>b.setAttribute('aria-pressed','false')); }
+function onEdit(){ readEditor(); markCustom(); resetProgress(); renderAll(); }
+
+function loadPreset(id){
+  const p=PRESETS.find(x=>x.id===id);
+  S.model=JSON.parse(JSON.stringify({sense:p.sense,c:p.c,n1:p.n1,n2:p.n2,unit:p.unit,cons:p.cons}));
+  S.preset=id; S.test=null; resetProgress();
+  document.querySelectorAll('#presets .chip').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.p===id)));
+  renderEditor(); renderAll();
+}
+
+/* ---------- wiring ---------- */
+$('#presets').insertAdjacentHTML('beforeend', PRESETS.map(p=>`<button type="button" class="chip" data-p="${p.id}" aria-pressed="false">${p.label}</button>`).join(''));
+$('#presets').addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(b) loadPreset(b.dataset.p); });
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{ S.model.sense=b.dataset.sense; renderEditor(); onEdit(); }));
+['c1','c2','n1','n2','unit'].forEach(id=>$('#'+id).addEventListener('input',onEdit));
+$('#cons').addEventListener('input',onEdit);
+$('#cons').addEventListener('change',e=>{ if(e.target.tagName==='SELECT') onEdit(); });
+$('#cons').addEventListener('click',e=>{ const d=e.target.closest('[data-del]'); if(!d||d.disabled) return; readEditor(); S.model.cons.splice(+d.dataset.del,1); renderEditor(); markCustom(); resetProgress(); renderAll(); });
+$('#add').addEventListener('click',()=>{ readEditor(); if(S.model.cons.length>=MAXK) return; S.model.cons.push({a1:1,a2:0,op:'<=',b:Math.round(S.V.X*0.6),name:''}); renderEditor(); markCustom(); resetProgress(); renderAll(); const i=S.model.cons.length-1; $('#a1-'+i).focus(); });
+$('#steps').addEventListener('click',e=>{ const b=e.target.closest('[data-step]'); if(!b) return; go(+b.dataset.step); });
+$('#prev').addEventListener('click',()=>go(S.step-1));
+$('#next').addEventListener('click',()=>go(S.step+1));
+function go(n){ n=Math.min(5,Math.max(1,n)); if(!unlocked(n)) return; S.step=n; S.fb=null; S.isoK=null; renderSteps(); renderResult(); renderIso(); draw(); renderExplain(); }
+function refresh(){ renderSteps(); renderResult(); renderIso(); draw(); renderExplain(); }
+function parseAns(t){ let s=String(t).trim().replace(/rp/ig,'').replace(/\s/g,'').replace(/−/g,'-'); if(!s) return NaN;
+  if(s.includes(',')) s=s.replace(/\./g,'').replace(',','.'); else if(/^-?\d{1,3}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,'');
+  if(s.includes('/')){ const [a,b]=s.split('/'); return Number(a)/Number(b); } return Number(s); }
+function near(v,ans){ return isFinite(v) && Math.abs(v-ans)<=Math.max(0.011,1e-3*Math.abs(ans)); }
+let advTimer=null;
+function advance(){ clearTimeout(advTimer); const n=S.step; S.rev[n]=Math.min(stepCount(n),S.rev[n]+1); S.fb=null; if(n===5) S.isoK=null; refresh();
+  const nx=document.querySelector('#explain .cur input, #explain .cur .btn'); if(nx) nx.focus({preventScroll:true}); }
+function showFb(ok,msg){ const el=$('#fb'); if(!el) return; el.hidden=false; el.className='fb '+(ok?'ok':'no'); el.innerHTML=msg; }
+function doCheck(){
+  const n=S.step, idx=S.rev[n], it=items(n)[idx]; if(!it) return;
+  let allOk=true, empty=false;
+  it.check.fields.forEach((f,j)=>{ const el=$('#ans-'+n+'-'+idx+'-'+j); const v=parseAns(el.value); if(el.value.trim()==='') empty=true; const ok=near(v,f.ans); el.setAttribute('aria-invalid',ok?'false':'true'); if(!ok) allOk=false; });
+  if(empty && !allOk){ showFb(false,'Isi semua kotak jawaban dulu.'); return; }
+  if(allOk){ showFb(true,'Tepat! Jawabanmu benar.'); advTimer=setTimeout(advance,900); }
+  else showFb(false,'Belum tepat. Kotak yang ditandai merah masih salah; hitung ulang lalu periksa lagi.');
+}
+$('#explain').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const act=b.dataset.act;
+  if(act==='check') doCheck();
+  else if(act==='reveal') advance();
+  else if(act==='skip'){ S.rev[S.step]=stepCount(S.step); S.fb=null; S.isoK=null; refresh(); }
+  else if(act==='choose'){
+    const it=items(S.step)[S.rev[S.step]]; const o=it.check.options[+b.dataset.j];
+    document.querySelectorAll('#explain .opt').forEach(x=>x.classList.remove('pick-ok','pick-no'));
+    b.classList.add(o.ok?'pick-ok':'pick-no');
+    showFb(o.ok,o.why); if(o.ok) advTimer=setTimeout(advance, S.step===5?1400:900);
+  }
+});
+$('#explain').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.classList.contains('ans')){ e.preventDefault(); doCheck(); } });
+
+$('#isoK').addEventListener('input',e=>{ S.isoK=parseFloat(e.target.value); $('#isoOut').textContent='Z = '+fmtZ(S.isoK); draw(); });
+$('#isoReset').addEventListener('click',()=>{ S.isoK=isoDefault(); renderIso(); draw(); });
+let anim=null;
+$('#isoPlay').addEventListener('click',()=>{
+  if(anim) cancelAnimationFrame(anim);
+  const [a,b]=isoRange(); const R=S.R; const s=R.s;
+  const from = s>0 ? a : b; const to = R.status==='unbounded' ? (s>0?b:a) : R.zBest;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ S.isoK=to; renderIso(); draw(); return; }
+  const t0=performance.now(), dur=1800;
+  const tick=now=>{ const t=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-t,3); S.isoK=from+(to-from)*e; $('#isoK').value=S.isoK; $('#isoOut').textContent='Z = '+fmtZ(S.isoK); draw(); if(t<1) anim=requestAnimationFrame(tick); else anim=null; };
+  anim=requestAnimationFrame(tick);
+});
+
+const svg=$('#svg');
+function svgPoint(e){ const r=svg.getBoundingClientRect(); const px=(e.clientX-r.left)/r.width*S.W, py=(e.clientY-r.top)/r.height*S.H; return [px,py]; }
+function snap(v,step){ const q=step/10; return Math.round(v/q)*q; }
+svg.addEventListener('pointermove',e=>{
+  const [px,py]=svgPoint(e); if(px<M.l||px>S.W-M.r||py<M.t||py>S.H-M.b){ $('#readout').textContent='Arahkan kursor ke grafik'; return; }
+  const p=inv(px,py); const q=[snap(p[0],S.V.xs),snap(p[1],S.V.ys)];
+  $('#readout').textContent=SUB1+' = '+fmt(q[0])+' · '+SUB2+' = '+fmt(q[1]);
+});
+svg.addEventListener('pointerleave',()=>{ $('#readout').textContent='Arahkan kursor ke grafik'; });
+svg.addEventListener('click',e=>{
+  const [px,py]=svgPoint(e); if(px<M.l-4||px>S.W-M.r+4||py<M.t-4||py>S.H-M.b+4) return;
+  const p=inv(px,py); const q=[Math.max(0,snap(p[0],S.V.xs)),Math.max(0,snap(p[1],S.V.ys))];
+  S.test={p:q, ok:feasible(S.model,q)}; renderTest(); draw();
+});
+
+function sizeSvg(){
+  const w=$('#plotbox').clientWidth-20;
+  const W=Math.round(Math.max(340,Math.min(760,w)));
+  const H=Math.round(W*(W<520?0.92:0.74));
+  if(W!==S.W||H!==S.H){ S.W=W; S.H=H; if(S.R) draw(); }
+}
+if(window.ResizeObserver) new ResizeObserver(sizeSvg).observe($('#plotbox'));
+sizeSvg();
+loadPreset('contoh1');
+})();
+</script>
+</body>
+</html>
